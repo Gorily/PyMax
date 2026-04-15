@@ -14,7 +14,7 @@ from pymax.payloads import (
     JoinChatPayload,
     LeaveChatPayload,
     RemoveUsersPayload,
-    ReworkInviteLinkPayload,
+    ReworkInviteLinkPayload, InviteAdminsPayload,
 )
 from pymax.protocols import ClientProtocol
 from pymax.static.enum import Opcode
@@ -129,6 +129,32 @@ class GroupMixin(ClientProtocol):
             Chat | None: Объект Chat или None при ошибке.
         """
         return await self.invite_users_to_group(chat_id, user_ids, show_history)
+
+    async def invite_admins_to_group(
+        self,
+        chat_id: int,
+        user_ids: list[int],
+        permissions: int
+    ) -> None:
+
+        payload = InviteAdminsPayload(
+            chat_id=chat_id,
+            user_ids=user_ids,
+            permissions=permissions,
+        ).model_dump(by_alias=True)
+
+        data = await self._send_and_wait(opcode=Opcode.CHAT_MEMBERS_UPDATE, payload=payload)
+
+        if data.get("payload", {}).get("error"):
+            MixinsUtils.handle_error(data)
+
+    async def invite_admins_to_channel(
+        self,
+        chat_id: int,
+        user_ids: list[int],
+        permissions: int
+    ) -> None:
+        return await self.invite_admins_to_group(chat_id, user_ids, permissions)
 
     async def remove_users_from_group(
         self,

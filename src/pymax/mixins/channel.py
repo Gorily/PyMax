@@ -1,9 +1,12 @@
+import time
+
 from pymax.exceptions import Error, ResponseError, ResponseStructureError
 from pymax.payloads import (
     GetGroupMembersPayload,
     JoinChatPayload,
     ResolveLinkPayload,
-    SearchGroupMembersPayload,
+    SearchGroupMembersPayload, CreateGroupPayload, CreateChannelPayload, CreateGroupMessage, CreateGroupAttach,
+    CreateChannelAttach, CreateChannelMessage,
 )
 from pymax.protocols import ClientProtocol
 from pymax.static.constant import (
@@ -11,11 +14,61 @@ from pymax.static.constant import (
     DEFAULT_MARKER_VALUE,
 )
 from pymax.static.enum import Opcode
-from pymax.types import Channel, Member
+from pymax.types import Channel, Member, Message
 from pymax.utils import MixinsUtils
 
 
 class ChannelMixin(ClientProtocol):
+    async def create_channel(
+        self,
+        name: str,
+        participant_ids: list[int] | None = None,
+        notify: bool = True,
+    ) -> tuple[Channel, Message] | None:
+        """
+        Создает канал
+
+        Args:
+            name (str): Название канала.
+            participant_ids (list[int] | None, optional): Список идентификаторов участников. Defaults to None.
+            notify (bool, optional): Флаг оповещения. Defaults to True.
+
+        Returns:
+            tuple[Chat, Message] | None: Объект Chat и Message или None при ошибке.
+        """
+        payload = CreateChannelPayload(
+            message=CreateChannelMessage(
+                cid=int(time.time() * 1000),
+                attaches=[
+                    CreateChannelAttach(
+                        _type="CONTROL",
+                        title=name,
+                        user_ids=(participant_ids if participant_ids else []),
+                    )
+                ],
+            ),
+            notify=notify,
+        ).model_dump(by_alias=True)
+
+        data = await self._send_and_wait(opcode=Opcode.MSG_SEND, payload=payload)
+        if data.get("payload", {}).get("error"):
+            MixinsUtils.handle_error(data)
+
+        print(data)
+
+        chat = Channel.from_dict(data["payload"]["chat"])
+        message = Message.from_dict(data["payload"])
+
+        if chat:
+            cached_chat = await self._get_chat(chat.id)
+            if cached_chat is None:
+                self.chats.append(chat)
+            else:
+                idx = self.chats.index(cached_chat)
+                self.chats[idx] = chat
+
+        return chat, message
+
     async def resolve_channel_by_name(self, name: str) -> Channel | None:
         """
         Получает информацию о канале по его имени

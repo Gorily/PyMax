@@ -191,13 +191,28 @@ class CreateGroupAttach(CamelModel):
     user_ids: list[int]
 
 
+class CreateChannelAttach(CamelModel):
+    type: Literal["CONTROL"] = Field("CONTROL", alias="_type")
+    event: str = "new"
+    chat_type: str = "CHANNEL"
+    title: str
+    user_ids: list[int]
+
+
 class CreateGroupMessage(CamelModel):
     cid: int
     attaches: list[CreateGroupAttach]
 
+class CreateChannelMessage(CamelModel):
+    cid: int
+    attaches: list[CreateChannelAttach]
 
 class CreateGroupPayload(CamelModel):
     message: CreateGroupMessage
+    notify: bool = True
+
+class CreateChannelPayload(CamelModel):
+    message: CreateChannelMessage
     notify: bool = True
 
 
@@ -207,6 +222,12 @@ class InviteUsersPayload(CamelModel):
     show_history: bool
     operation: str = "add"
 
+class InviteAdminsPayload(CamelModel):
+    chat_id: int
+    user_ids: list[int]
+    operation: str = "add"
+    type: str = "ADMIN"
+    permissions: int
 
 class RemoveUsersPayload(CamelModel):
     chat_id: int
