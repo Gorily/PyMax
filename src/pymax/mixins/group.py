@@ -450,7 +450,7 @@ class GroupMixin(ClientProtocol):
         """
         await self.leave_group(chat_id)
 
-    async def fetch_chats(self, marker: int | None = None) -> list[Chat]:
+    async def fetch_chats(self, marker: int | None = None) -> (list[Chat], int):
         """
         Загружает список чатов
 
@@ -470,6 +470,8 @@ class GroupMixin(ClientProtocol):
             MixinsUtils.handle_error(data)
 
         chats_data = data["payload"].get("chats", [])
+        marker = data["payload"].get("marker", None)
+
         chats: list[Chat] = []
         for chat_dict in chats_data:
             chat = Chat.from_dict(chat_dict)
@@ -481,4 +483,4 @@ class GroupMixin(ClientProtocol):
                 idx = self.chats.index(cached_chat)
                 self.chats[idx] = chat
 
-        return chats
+        return chats, marker
