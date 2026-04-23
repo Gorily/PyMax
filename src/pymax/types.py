@@ -629,6 +629,19 @@ class ReactionInfo:
             your_reaction=data.get("yourReaction"),
         )
 
+class Stats:
+    def __init__(
+        self,
+        views: int,
+    ) -> None:
+        self.views = views
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Self:
+        return cls(
+            views=data.get("views", 0),
+        )
+
 
 class ContactAttach:
     def __init__(
@@ -666,6 +679,7 @@ class Message:
         chat_id: int | None,
         sender: int | None,
         elements: list[Element] | None,
+        stats: Stats | None,
         reaction_info: ReactionInfo | None,
         options: int | None,
         id: int,
@@ -698,6 +712,7 @@ class Message:
         self.attaches = attaches
         self.status = status
         self.link = link
+        self.stats = stats
         self.reactionInfo = reaction_info
 
     @classmethod
@@ -732,6 +747,13 @@ class Message:
             link = MessageLink.from_dict(link_value)
         else:
             link = None
+
+        stats_value = message.get("stats")
+        if isinstance(stats_value, dict):
+            stats = Stats.from_dict(stats_value)
+        else:
+            stats = None
+
         reaction_info_value = message.get("reactionInfo")
         if isinstance(reaction_info_value, dict):
             reaction_info = ReactionInfo.from_dict(reaction_info_value)
@@ -749,6 +771,7 @@ class Message:
             attaches=attaches,
             status=message.get("status"),
             link=link,
+            stats = stats,
             reaction_info=reaction_info,
         )
 
